@@ -20,11 +20,19 @@ import { useNavigate } from "react-router-dom";
 import { getUser } from "@/lib/api";
 import { AddPaymentMethodModal } from "@/components/payment-method";
 
+// Definición del tipo para los métodos de pago
+interface PaymentMethod {
+    id: string;
+    type: string;
+    number: string;
+    expirationDate: string;
+}
+
 export default function Account() {
     const [name, setName] = useState("John Doe");
     const [email, setEmail] = useState("john.doe@example.com");
     const user = localStorage.getItem("user_id");
-    const [payments, setPayments] = useState([]);
+    const [payments, setPayments] = useState<PaymentMethod[]>([]); // Ahora tiene tipado correcto
 
     const { logout } = useAuth();
     const router = useNavigate();
@@ -35,11 +43,13 @@ export default function Account() {
     };
 
     useEffect(() => {
-        getUser(user!).then((r) => {
-            setName(r.username);
-            setEmail(r.email);
-            setPayments(r.paymentMethods);
-        });
+        if (user) {
+            getUser(user).then((r) => {
+                setName(r.username || "John Doe");
+                setEmail(r.email || "john.doe@example.com");
+                setPayments(r.paymentMethods || []); // Previene errores si la API devuelve undefined
+            }).catch(err => console.error("Error fetching user:", err));
+        }
     }, [user]);
 
     return (
@@ -55,36 +65,22 @@ export default function Account() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Personal Information</CardTitle>
-                            <CardDescription>
-                                Update your personal details here.
-                            </CardDescription>
+                            <CardDescription>Update your personal details here.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center space-x-4">
                                 <Avatar className="w-20 h-20">
-                                    <AvatarImage
-                                        src="/placeholder.svg?height=80&width=80"
-                                        alt="Avatar"
-                                    />
+                                    <AvatarImage src="/placeholder.svg?height=80&width=80" alt="Avatar" />
                                     <AvatarFallback>JD</AvatarFallback>
                                 </Avatar>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                />
+                                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                />
+                                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
                             </div>
                         </CardContent>
                         <CardFooter>
@@ -96,9 +92,7 @@ export default function Account() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Password</CardTitle>
-                            <CardDescription>
-                                Change your password here. After saving, you'll be logged out.
-                            </CardDescription>
+                            <CardDescription>Change your password here. After saving, you'll be logged out.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid gap-2">
@@ -123,19 +117,21 @@ export default function Account() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Billing</CardTitle>
-                            <CardDescription>
-                                Manage your billing information and view your invoices.
-                            </CardDescription>
+                            <CardDescription>Manage your billing information and view your invoices.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center space-x-4">
+                            <div className="space-y-4">
                                 {payments.length > 0 ? (
                                     payments.map((payment) => (
-                                        <div key={payment.id}>
+                                        <div key={payment.id} className="flex items-center space-x-4">
                                             <CreditCard className="w-6 h-6" />
                                             <div>
-                                                <p className="font-medium">Visa ending in {payment.number.slice(-4)}</p>
-                                                <p className="text-sm text-gray-500">Expires {payment.expirationDate}</p>
+                                                <p className="font-medium">
+                                                    {payment.type} ending in {payment.number?.slice(-4) || "****"}
+                                                </p>
+                                                <p className="text-sm text-gray-500">
+                                                    Expires {payment.expirationDate || "N/A"}
+                                                </p>
                                             </div>
                                         </div>
                                     ))
@@ -145,17 +141,13 @@ export default function Account() {
                             </div>
                             <div className="flex space-x-4">
                                 <Button variant="outline">View Invoices</Button>
-                                <AddPaymentMethodModal owner={name} userId={user!} />
+                                {user && <AddPaymentMethodModal owner={name} userId={user} />}
                             </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
             </Tabs>
-            <Button
-                className="mt-4"
-                onClick={() => handleLogout()}
-                variant={"destructive"}
-            >
+            <Button className="mt-4" onClick={handleLogout} variant="destructive">
                 Logout
             </Button>
         </div>

@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,22 +9,29 @@ import { CreditCard } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/components/LanguageProvider"; // Importamos el contexto de idioma
 
+// Definimos los tipos para mayor seguridad
+type PaymentMethod = {
+  id: string;
+  number: string;
+};
+
 export function PaymentSummary() {
     const { language } = useLanguage(); // Obtenemos el idioma actual
-    const [payments, setPayments] = useState([]);
-    const user = localStorage.getItem("user_id") || "";
+    const [payments, setPayments] = useState<PaymentMethod[]>([]);
+    const [user, setUser] = useState<string | null>(null);
 
     const { cart } = useCart();
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
     useEffect(() => {
-        if (user) {
-            getUser(user).then((r) => {
+        const storedUser = localStorage.getItem("user_id");
+        if (storedUser) {
+            setUser(storedUser);
+            getUser(storedUser).then((r) => {
                 setPayments(r.paymentMethods || []);
-                console.log(r.paymentMethods);
             });
         }
-    }, [user]);
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,13 +68,23 @@ export function PaymentSummary() {
                     {cart.map((item, index) => (
                         <li key={index} className="flex justify-between">
                             <span>{item.title}</span>
-                            <span>{new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", { style: 'currency', currency: 'USD' }).format(item.price / 100)}</span>
+                            <span>
+                                {new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", {
+                                    style: "currency",
+                                    currency: "USD",
+                                }).format(item.price / 100)}
+                            </span>
                         </li>
                     ))}
                 </ul>
                 <div className="mt-4 pt-4 border-t flex justify-between font-bold">
                     <span>{translations[language].total}</span>
-                    <span>{new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", { style: 'currency', currency: 'USD' }).format(total / 100)}</span>
+                    <span>
+                        {new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", {
+                            style: "currency",
+                            currency: "USD",
+                        }).format(total / 100)}
+                    </span>
                 </div>
             </CardContent>
             <CardFooter>
@@ -83,8 +100,10 @@ export function PaymentSummary() {
                                         <SelectLabel>{translations[language].registeredCards}</SelectLabel>
                                         {payments.map((payment) => (
                                             <SelectItem key={payment.id} value={payment.number}>
-                                                <CreditCard className="block mr-2" />
-                                                {`•••• ${payment.number.slice(-4)}`}
+                                                <div className="flex items-center">
+                                                    <CreditCard className="mr-2" />
+                                                    {`•••• ${payment.number.slice(-4)}`}
+                                                </div>
                                             </SelectItem>
                                         ))}
                                     </SelectGroup>
@@ -95,12 +114,14 @@ export function PaymentSummary() {
                         )}
                     </div>
                     <Button type="submit" className="w-full">
-                        {translations[language].pay} {new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", { style: 'currency', currency: 'USD' }).format(total / 100)}
+                        {translations[language].pay}{" "}
+                        {new Intl.NumberFormat(language === "en" ? "en-US" : "es-ES", {
+                            style: "currency",
+                            currency: "USD",
+                        }).format(total / 100)}
                     </Button>
                 </form>
             </CardFooter>
         </Card>
     );
 }
-
-
